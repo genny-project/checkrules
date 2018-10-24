@@ -1,11 +1,12 @@
 package life.genny;
 
-
-
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringReader;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
@@ -14,7 +15,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
 import org.kie.api.KieBase;
 import org.kie.api.KieBaseConfiguration;
@@ -38,19 +42,18 @@ import io.vertx.rxjava.core.buffer.Buffer;
 import life.genny.qwandautils.GennySettings;
 import life.genny.qwandautils.KeycloakUtils;
 
-
-
 public class App {
-	
+
 	protected static final Logger log = org.apache.logging.log4j.LogManager
 			.getLogger(MethodHandles.lookup().lookupClass().getCanonicalName());
 
 	private Map<String, KieBase> kieBaseCache = new HashMap<String, KieBase>();
+	private Map<String, String> importMap = new HashMap<String, String>();
+	private Map<String, String> fileMap = new HashMap<String, String>();
 
 	KieServices ks = KieServices.Factory.get();
 
 	Set<String> realms = new HashSet<String>();
-
 
 	@Parameter(names = "--help", help = true)
 	private boolean help = false;
@@ -58,9 +61,11 @@ public class App {
 	@Parameter(names = { "--rulesdir", "-r" }, description = "Rules Dir", required = false)
 	List<String> rulesdirs;
 
-
 	@Parameter(names = { "--verbose", "-v" }, description = "disables quiet mode (verbose)")
 	private boolean verbose = true;
+
+	@Parameter(names = { "--fix", "-f" }, description = "try and fix")
+	private boolean fix = false;
 
 	public static void main(String... args) {
 		App main = new App();
@@ -69,28 +74,30 @@ public class App {
 			System.out.println("Genny Drools Rules Checker V1.0\n");
 		}
 		JCommander jCommander = new JCommander(main, args);
-		if ((main.help) ) {
+		if ((main.help)) {
 			jCommander.usage();
 			return;
 		}
-			main.runs();
-		
+		main.runs();
+
 	}
 
 	public void runs() {
 
-		if ((rulesdirs == null)||rulesdirs.isEmpty()) {
+		setupImportMap();
+
+		if ((rulesdirs == null) || rulesdirs.isEmpty()) {
 			rulesdirs = new ArrayList<String>();
 			rulesdirs.add("/rules"); // default
 		}
-		
+
 		for (String rulesdir : rulesdirs) {
-			System.out.println("Rulesdir = "+rulesdir);
+			System.out.println("Rulesdir = " + rulesdir);
 			loadInitialRules(rulesdir);
 		}
-		
+
 		System.out.println("Finished");
-  
+
 	}
 
 	/**
@@ -118,6 +125,7 @@ public class App {
 		}
 
 	}
+
 	List<Tuple3<String, String, String>> processFileRealms(final String realm, String inputFileStrs) {
 		List<Tuple3<String, String, String>> rules = new ArrayList<Tuple3<String, String, String>>();
 
@@ -185,8 +193,8 @@ public class App {
 						}
 
 						Tuple3<String, String, String> rule = (Tuple.of(realm, fileName + "." + fileNameExt, ruleText));
-						String filerule = null;
-
+						File f = new File(fileName + "." + fileNameExt);
+						fileMap.put(f.getName(), inputFileStr);
 						try {
 							// filerule =
 							// inputFileStr.substring(inputFileStr.indexOf("/life.genny.rules/"));
@@ -242,6 +250,29 @@ public class App {
 
 	}
 
+	private List<String> getFileAsList(final String inputFilePath) throws IOException {
+		List<String> lines = new ArrayList<String>();
+
+		File file = new File(inputFilePath);
+		final BufferedReader in = new BufferedReader(new FileReader(file));
+
+		String line = null;
+		boolean packageline = false;
+		while ((line = in.readLine()) != null) {
+			if (line.startsWith("package")) {
+				if (!packageline) {
+					lines.add(line);
+				}else {
+					log.error("Fix Duplicate Package declaration");
+				}
+			} else {
+				lines.add(line);
+			}
+		}
+		in.close();
+		return lines;
+	}
+
 	private String getFileAsText(final String inputFilePath) throws IOException {
 		File file = new File(inputFilePath);
 		final BufferedReader in = new BufferedReader(new FileReader(file));
@@ -270,6 +301,7 @@ public class App {
 		try {
 			// load up the knowledge base
 			final KieFileSystem kfs = ks.newKieFileSystem();
+			int errorCount = 0;
 
 			// final String content =
 			// new
@@ -278,21 +310,209 @@ public class App {
 			// log.info("Read New Rules set from File");
 
 			// Write each rule into it's realm cache
-			for (final Tuple3<String, String, String> rule : rules) {
-				// test each rule as it gets entered
-				log.info("Checking rule "+rule._1+" ["+rule._2+"]");
-				if (writeRulesIntoKieFileSystem(realm, rules, kfs, rule)) {
-					count++;
-				}
-				final KieBuilder kieBuilder = ks.newKieBuilder(kfs).buildAll();
-				if (kieBuilder.getResults().hasMessages(Message.Level.ERROR)) {
-					log.error("Error in Rules for realm " + realm+ " for rule file "+rule._2);
-					log.info(kieBuilder.getResults().toString());
-					log.info(realm + " life.genny.rules NOT installed\n");
-					return -1;
+			for (final Tuple3<String, String, String> arule : rules) {
+				boolean ruleok = false;
+				Tuple3<String, String, String> rule = arule;
+				int index = 1;
+				int loopcount=0;
+				while (!ruleok) {
+					loopcount++;
+					// test each rule as it gets entered
+					log.info("Checking rule " + rule._1 + " [" + rule._2 + "] pass " + (index++));
+					if (writeRulesIntoKieFileSystem(realm, rules, kfs, rule)) {
+						count++;
+					}
+					final KieBuilder kieBuilder = ks.newKieBuilder(kfs).buildAll();
+					if (kieBuilder.getResults().hasMessages(Message.Level.ERROR)) {
+						// log.error("Error in Rules for realm " + realm + " for rule file " + rule._2);
+						// log.info(kieBuilder.getResults().toString());
+						if (fix) {
+							if (rule._2.equalsIgnoreCase("70_SendTableView_GRP_AGENCIES.drl")) {
+								log.info("stop here");
+							}
+							// extract the error lines
+							for (Message errorMsg : kieBuilder.getResults().getMessages()) {
+								String linetext = errorMsg.getText();
+								if (loopcount> 5) {
+									log.error("Error #"+(++errorCount)+" Yikes! Cannot handle this one! ");
+									for (Message errorMsg2 : kieBuilder.getResults().getMessages()) {
+										String linetext2 = errorMsg2.getText();
+										log.error(linetext2);
+									}
+									ruleok = true;
+									break;
+								}
+
+								if (linetext.contains("cannot be resolved")) {
+									log.info("Error #"+(++errorCount)+" Fix Missing Import");
+									String[] lines = linetext.split("\n");
+									Set<String> imports = new HashSet<String>();
+									for (String line : lines) {
+										line = line.trim();
+										Pattern pattern = Pattern.compile("(\\S+)\\s+cannot be resolved to a type.*");
+										Matcher matcher = pattern.matcher(line);
+										if (matcher.matches()) {
+											// log.info("Found Missing Import - " + matcher.group(1) + " in file " +
+											// rule._2);
+											imports.add(matcher.group(1));
+										} else {
+											pattern = Pattern.compile(
+													"Rule\\sCompilation\\serror\\s(\\S+)\\s+cannot be resolved to a type");
+											matcher = pattern.matcher(line);
+											if (matcher.matches()) {
+												// log.info("Found Missing Import - " + matcher.group(1) + " in file " +
+												// rule._2);
+												imports.add(matcher.group(1));
+
+											} else {
+												pattern = Pattern.compile(
+														"Rule\\sCompilation\\serror\\s(\\S+)\\s+cannot be resolved");
+												matcher = pattern.matcher(line);
+												if (matcher.matches()) {
+													// log.info("Found Missing Import - " + matcher.group(1) + " in file
+													// " +
+													// rule._2);
+													imports.add(matcher.group(1));
+												} else {
+													pattern = Pattern.compile(
+															"(\\w+)\\s+cannot be resolved");
+													matcher = pattern.matcher(line);
+													if (matcher.matches()) {
+														// log.info("Found Missing Import - " + matcher.group(1) + " in file
+														// " +
+														// rule._2);
+														imports.add(matcher.group(1));
+													} else {
+														if (line.contains("is not applicable for the arguments")) {
+															log.error(line);
+															ruleok = true;
+														}
+													}
+												}
+											}
+										}
+									}
+									// log.info("found " + imports.size() + " imports to be added " + imports);
+									String importsLine = "";
+									for (String importLine : imports) {
+										String importstatement = importMap.get(importLine);
+										if (importstatement == null) {
+											log.error("Please add import for " + importLine);
+											ruleok = true; // to hop out of loop
+										} else {
+											String l = "import " + importMap.get(importLine) + ";";
+											importsLine += l + "\n";
+										}
+									}
+									// log.info(importsLine);
+									// Now add to existing file
+									// log.info("full filename = " + fileMap.get(rule._2));
+									// now add the imports to the file
+									List<String> filelines = getFileAsList(fileMap.get(rule._2));
+									// Now write back
+									if (!filelines.isEmpty()) {
+										int startIndex = 0;
+										while (StringUtils.isBlank(filelines.get(startIndex))) {
+											startIndex++;
+										}
+										PrintWriter pw = new PrintWriter(new FileWriter(fileMap.get(rule._2)));
+
+										pw.write(filelines.get(startIndex) + "\n"); // package
+										pw.write("\n");
+										pw.write(importsLine);
+										for (int j = 1; j < filelines.size(); j++) {
+											pw.write(filelines.get(j) + "\n");
+										}
+
+										pw.close();
+										pw.flush();
+									}
+									break;
+								} else {
+									if (linetext.contains("mismatched input '<eof>'")) {
+										log.info("Error #"+(++errorCount)+" Fix // comments");
+										List<String> filelines = getFileAsList(fileMap.get(rule._2));
+										// Now write back
+										PrintWriter pw = new PrintWriter(new FileWriter(fileMap.get(rule._2)));
+
+										for (int j = 0; j < filelines.size(); j++) {
+											String line = filelines.get(j);
+											if (line.contains("//")) {
+												// is there // on the line?
+												Pattern pattern = Pattern.compile("^(.*)\\/\\/(.*)");
+												Matcher matcher = pattern.matcher(line);
+												if (matcher.matches()) {
+													// log.info(line);
+													// log.info("found [" + matcher.group(1) + "]" + "/* " +
+													// matcher.group(2)
+													// + " */");
+													// remove any internal comments
+													String commentText = matcher.group(2).replaceAll("(?:/\\*(?:[^*]|(?:\\*+[^*/]))*\\*+/)|(?://.*)","");
+													pw.write(
+															matcher.group(1) + "/* " + commentText + " */" + "\n");
+												} else {
+													pw.write(line + "\n");
+												}
+											} else {
+												pw.write(line + "\n");
+											}
+											// pw.write(filelines.get(j)+"\n");
+										}
+
+										pw.close();
+										pw.flush();
+										break;
+									} else {
+										if (linetext.contains(
+												"package, unit, import, global, declare, function, rule, query")) {
+											log.info("Error #"+(++errorCount)+" Fix missing semi colon");
+											List<String> filelines = getFileAsList(fileMap.get(rule._2));
+											// Now write back
+											PrintWriter pw = new PrintWriter(new FileWriter(fileMap.get(rule._2)));
+
+											for (int j = 0; j < filelines.size(); j++) {
+												String line = filelines.get(j);
+												if (line.contains("import")) {
+													// is there // on the line?
+													Pattern pattern = Pattern.compile("^\\s*import(.*)");
+													Matcher matcher = pattern.matcher(line);
+													if (matcher.matches()) {
+														// log.info(line);
+														String importline = matcher.group(1).trim();
+														if (!importline.endsWith(";")) {
+															pw.write(line + ";" + "\n");
+														}
+													} else {
+														pw.write(line + "\n");
+													}
+												} else {
+													pw.write(line + "\n");
+												}
+												// pw.write(filelines.get(j)+"\n");
+											}
+
+											pw.close();
+											pw.flush();
+											break;
+										} else {
+											log.error("Error #"+(++errorCount)+" Unknown error - "+linetext);
+											ruleok = true;
+										}
+									}
+								}
+							}
+							String ruletext = getFileAsText(fileMap.get(rule._2));
+							rule = Tuple.of(arule._1, arule._2, ruletext); // update the rule with the fixed text
+						} else {
+							ruleok = true;
+						}
+					} else {
+						ruleok = true;
+
+					}
+
 				}
 			}
-
 			final KieBuilder kieBuilder = ks.newKieBuilder(kfs).buildAll();
 			if (kieBuilder.getResults().hasMessages(Message.Level.ERROR)) {
 				log.error("Error in Rules for realm " + realm);
@@ -434,7 +654,53 @@ public class App {
 		return globals;
 	}
 
+	private void setupImportMap() {
+		try {
+			String importFile = "./imports.txt";
+			File file = new File(importFile);
+			BufferedReader in;
 
+			in = new BufferedReader(new FileReader(file));
 
+			String ret = "";
+			String line = null;
+			while ((line = in.readLine()) != null) {
+				// log.info("IMPORT:"+line);
+				Pattern pattern = Pattern.compile("^import\\s+(.*);");
+				Matcher matcher = pattern.matcher(line);
+				if (matcher.matches()) {
+					String iline = matcher.group(1);
+					// log.info(iline);
+					Pattern pattern2 = Pattern.compile(".*\\.(\\S+)\\s*");
+					Matcher matcher2 = pattern2.matcher(iline);
+					if (matcher2.matches()) {
+						String iline2 = matcher2.group(1);
+						// log.info(iline2);
+						importMap.put(iline2.trim(), iline.trim());
+						log.info(iline2 + ":" + iline);
+					}
+					// log.info(matcher.group(2));
+				}
+
+			}
+			in.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		// TODO, this looks ugly. Why are enums being used???? should be baseentity codes. fix
+		
+		importMap.put("ViewType.Form","life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.Table","life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.List","life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.SplitView","life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.Custom","life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.Bucket","life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.Detail","life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.Tab","life.genny.utils.Layout.ViewType");
+		
+
+	}
 
 }

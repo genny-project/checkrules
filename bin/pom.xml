@@ -18,11 +18,11 @@
 
 		<!--java version -->
 		<java-version>1.8</java-version>
-		<genny-verticle.version>1.0.62</genny-verticle.version>
+		<genny-verticle.version>1.0.61</genny-verticle.version>
 		<drools.version>7.1.0.Final</drools.version>
 		<jbpm.version>7.1.0.Final</jbpm.version>
 		<kie.version>7.1.0.Final</kie.version>
-		<genny-rules.version>1.0.63</genny-rules.version>
+		<genny-rules.version>1.0.60</genny-rules.version>
 
 	</properties>
 
