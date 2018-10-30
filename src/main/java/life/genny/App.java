@@ -261,12 +261,15 @@ public class App {
 		while ((line = in.readLine()) != null) {
 			if (line.startsWith("package")) {
 				if (!packageline) {
+					packageline = true;
 					lines.add(line);
 				}else {
 					log.error("Fix Duplicate Package declaration");
 				}
 			} else {
-				lines.add(line);
+				if (packageline) {
+					lines.add(line); // only add lines once the package appears
+				}
 			}
 		}
 		in.close();
@@ -327,9 +330,19 @@ public class App {
 						// log.error("Error in Rules for realm " + realm + " for rule file " + rule._2);
 						// log.info(kieBuilder.getResults().toString());
 						if (fix) {
-							if (rule._2.equalsIgnoreCase("70_SendTableView_GRP_AGENCIES.drl")) {
+							if (rule._2.equalsIgnoreCase("10_SendOfferNotificationToIntern.drl")) {
 								log.info("stop here");
 							}
+							
+							// dumbkly get rid of duplicate packages
+							List<String> filelinesdedup = getFileAsList(fileMap.get(rule._2));
+							PrintWriter pw2 = new PrintWriter(new FileWriter(fileMap.get(rule._2)));
+							for (int j = 0; j < filelinesdedup.size(); j++) {
+								pw2.write(filelinesdedup.get(j) + "\n");
+							}
+							pw2.close();
+							pw2.flush();
+							
 							// extract the error lines
 							for (Message errorMsg : kieBuilder.getResults().getMessages()) {
 								String linetext = errorMsg.getText();
@@ -383,9 +396,19 @@ public class App {
 														// rule._2);
 														imports.add(matcher.group(1));
 													} else {
-														if (line.contains("is not applicable for the arguments")) {
-															log.error(line);
-															ruleok = true;
+														pattern = Pattern.compile(
+																"Rule\\sCompilation\\serror\\sThe\\smethod\\sfilter\\(Predicate\\<\\?\\ssuper\\s(\\S+)\\>\\)\\sin\\sthe\\stype\\sStream\\<(\\S+)\\>\\s+is\\snot\\sapplicable.*");
+														matcher = pattern.matcher(line);
+														if (matcher.matches()) {
+															// log.info("Found Missing Import - " + matcher.group(1) + " in file
+															// " +
+															// rule._2);
+															imports.add(matcher.group(1));
+														} else {
+															if (line.contains("is not applicable for the arguments")) {
+																log.error(line);
+																ruleok = true;
+															}
 														}
 													}
 												}
@@ -439,7 +462,7 @@ public class App {
 											String line = filelines.get(j);
 											if (line.contains("//")) {
 												// is there // on the line?
-												Pattern pattern = Pattern.compile("^(.*)\\/\\/(.*)");
+												Pattern pattern = Pattern.compile("^(.*)[^:]\\/\\/(.*)");
 												Matcher matcher = pattern.matcher(line);
 												if (matcher.matches()) {
 													// log.info(line);
@@ -447,7 +470,9 @@ public class App {
 													// matcher.group(2)
 													// + " */");
 													// remove any internal comments
-													String commentText = matcher.group(2).replaceAll("(?:/\\*(?:[^*]|(?:\\*+[^*/]))*\\*+/)|(?://.*)","");
+													String commentText = matcher.group(2);
+													commentText = commentText.replaceAll("/\\*","");
+													commentText = commentText.replaceAll("\\*/","");
 													pw.write(
 															matcher.group(1) + "/* " + commentText + " */" + "\n");
 												} else {
