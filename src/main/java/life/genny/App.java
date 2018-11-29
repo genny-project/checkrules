@@ -356,7 +356,7 @@ public class App {
 									break;
 								}
 
-								if (linetext.contains("cannot be resolved")) {
+								if (linetext.contains("resolve")) {
 									log.info("Error #"+(++errorCount)+" Fix Missing Import");
 									String[] lines = linetext.split("\n");
 									Set<String> imports = new HashSet<String>();
@@ -377,7 +377,21 @@ public class App {
 												// rule._2);
 												imports.add(matcher.group(1));
 
-											} else {
+											} 
+											
+											else {
+												pattern = Pattern.compile(
+														"Unable\\sto\\sresolve\\sObjectType\\s\\'(\\S+)\\'");
+												matcher = pattern.matcher(line);
+												if (matcher.matches()) {
+													// log.info("Found Missing Import - " + matcher.group(1) + " in file " +
+													// rule._2);
+													imports.add(matcher.group(1));
+
+												} 
+											
+											
+											else {
 												pattern = Pattern.compile(
 														"Rule\\sCompilation\\serror\\s(\\S+)\\s+cannot be resolved");
 												matcher = pattern.matcher(line);
@@ -414,6 +428,7 @@ public class App {
 												}
 											}
 										}
+									}
 									}
 									// log.info("found " + imports.size() + " imports to be added " + imports);
 									String importsLine = "";
