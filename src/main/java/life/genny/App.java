@@ -66,6 +66,8 @@ public class App {
 
 	@Parameter(names = { "--fix", "-f" }, description = "try and fix")
 	private boolean fix = false;
+	
+	private Integer ruleCount=0;
 
 	public static void main(String... args) {
 		App main = new App();
@@ -321,7 +323,7 @@ public class App {
 				while (!ruleok) {
 					loopcount++;
 					// test each rule as it gets entered
-					log.info("Checking rule " + rule._1 + " [" + rule._2 + "] pass " + (index++));
+					log.info("Checking rule "+ruleCount+" of "+rules.size()+" " + rule._1 + " [" + rule._2 + "] pass " + (index++));
 					if (writeRulesIntoKieFileSystem(realm, rules, kfs, rule)) {
 						count++;
 					}
@@ -548,7 +550,7 @@ public class App {
 						}
 					} else {
 						ruleok = true;
-
+						ruleCount++;
 					}
 
 				}
