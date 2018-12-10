@@ -67,7 +67,7 @@ public class App {
 	@Parameter(names = { "--fix", "-f" }, description = "try and fix")
 	private boolean fix = false;
 	
-	private Integer ruleCount=0;
+	private Integer ruleCount=1;
 
 	public static void main(String... args) {
 		App main = new App();
@@ -336,7 +336,7 @@ public class App {
 								log.info("stop here");
 							}
 							
-							// dumbkly get rid of duplicate packages
+							// dumbly get rid of duplicate packages
 							List<String> filelinesdedup = getFileAsList(fileMap.get(rule._2));
 							PrintWriter pw2 = new PrintWriter(new FileWriter(fileMap.get(rule._2)));
 							for (int j = 0; j < filelinesdedup.size(); j++) {
@@ -348,7 +348,7 @@ public class App {
 							// extract the error lines
 							for (Message errorMsg : kieBuilder.getResults().getMessages()) {
 								String linetext = errorMsg.getText();
-								if (loopcount> 5) {
+								if (loopcount> 10) {
 									log.error("Error #"+(++errorCount)+" Yikes! Cannot handle this one! ");
 									for (Message errorMsg2 : kieBuilder.getResults().getMessages()) {
 										String linetext2 = errorMsg2.getText();
@@ -416,14 +416,20 @@ public class App {
 																"Rule\\sCompilation\\serror\\sThe\\smethod\\sfilter\\(Predicate\\<\\?\\ssuper\\s(\\S+)\\>\\)\\sin\\sthe\\stype\\sStream\\<(\\S+)\\>\\s+is\\snot\\sapplicable.*");
 														matcher = pattern.matcher(line);
 														if (matcher.matches()) {
-															// log.info("Found Missing Import - " + matcher.group(1) + " in file
-															// " +
-															// rule._2);
+
 															imports.add(matcher.group(1));
 														} else {
-															if (line.contains("is not applicable for the arguments")) {
-																log.error(line);
-																ruleok = true;
+															pattern = Pattern.compile(
+																	"Type\\smismatch\\:\\scannot\\sconvert\\sfrom\\selement\\stype\\s(\\S+)\\sto\\s(\\S+)");
+															matcher = pattern.matcher(line);
+															if (matcher.matches()) {
+
+																// do nothing
+															} else {
+																if (line.contains("is not applicable for the arguments")) {
+																	log.error(line);
+																	ruleok = true;
+																}
 															}
 														}
 													}
@@ -741,6 +747,7 @@ public class App {
 		importMap.put("ViewType.Bucket","life.genny.utils.Layout.ViewType");
 		importMap.put("ViewType.Detail","life.genny.utils.Layout.ViewType");
 		importMap.put("ViewType.Tab","life.genny.utils.Layout.ViewType");
+		importMap.put("SearchEntity.StringFilter.LIKE", "life.genny.qwanda.entity.SearchEntity.StringFilter.*");
 		
 
 	}
