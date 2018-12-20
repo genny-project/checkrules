@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>life.genny</groupId>
 	<artifactId>checkrules</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>2.0.0</version>
 
 	<organization>
 		<name>genny-project</name>
@@ -18,8 +18,8 @@
 
 		<!--java version -->
 		<java-version>1.8</java-version>
-		<genny-verticle.version>1.0.65</genny-verticle.version>
-		<genny-rules.version>1.0.65</genny-rules.version>
+		<genny-verticle.version>${version}</genny-verticle.version>
+		<genny-rules.version>${version}</genny-rules.version>
 		<drools.version>7.1.0.Final</drools.version>
 		<jbpm.version>7.1.0.Final</jbpm.version>
 		<kie.version>7.1.0.Final</kie.version>
