@@ -4,7 +4,7 @@ FROM java:8
 RUN mkdir /rules
 COPY ./app.sh / 
 COPY ./imports.txt /
-ADD target/checkrules-0.0.1-SNAPSHOT-jar-with-dependencies.jar app.jar   
+ADD target/checkrules-2.0.0-jar-with-dependencies.jar app.jar   
 RUN sh -c 'touch /app.jar'
 ENV JAVA_OPTS=""
 ENTRYPOINT ["/app.sh"]
