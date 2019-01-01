@@ -1,2 +1,0 @@
-# checkrules
-Check Rules
