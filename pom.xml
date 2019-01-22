@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>life.genny</groupId>
 	<artifactId>checkrules</artifactId>
-	<version>2.0.0</version>
+	<version>2.0.2</version>
 
 	<organization>
 		<name>genny-project</name>
