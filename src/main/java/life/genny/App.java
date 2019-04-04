@@ -78,13 +78,21 @@ public class App {
 		JCommander jCommander = new JCommander(main, args);
 		if ((main.help)) {
 			jCommander.usage();
-			return;
+			System.exit(-1);
 		}
-		main.runs();
+		Set<String> errors =  main.runs();
+		
+		if (errors.isEmpty()) {
+			System.out.println("All good!");
+			return ;
+		} else {
+			System.exit(errors.size());
+		}
 
 	}
 
-	public void runs() {
+	public Set<String> runs() {
+
 
 		setupImportMap();
 
@@ -93,12 +101,19 @@ public class App {
 			rulesdirs.add("/rules"); // default
 		}
 
+		Set<String> errors = new HashSet<String>();
+		
 		for (String rulesdir : rulesdirs) {
 			System.out.println("Rulesdir = " + rulesdir);
-			loadInitialRules(rulesdir);
+			Set<String> result = loadInitialRules(rulesdir);
+			if (result != null) {
+				errors.addAll(result);
+			}
 		}
 
-		System.out.println("Finished");
+		System.out.println("Finished with "+errors.size()+" errors");
+		
+		return errors;
 
 	}
 
@@ -106,7 +121,8 @@ public class App {
 	 * @param vertx
 	 * @return
 	 */
-	public void loadInitialRules(final String rulesDir) {
+	public Set<String> loadInitialRules(final String rulesDir) {
+		Set<String> errors = new HashSet<String>();
 		log.info("Loading Rules and workflows!!!");
 		setKieBaseCache(new HashMap<String, KieBase>()); // clear
 		// List<Tuple2<String, String>> life.genny.rules = processFile(rulesDir);
@@ -119,13 +135,13 @@ public class App {
 		realms.remove("genny");
 		log.info("Setting up Genny Rules");
 		if (realms.isEmpty()) {
-			setupKieRules("genny", rules); // run genny life.genny.rules first
+			errors.addAll(setupKieRules("genny", rules)); // run genny life.genny.rules first
 		} else {
 			for (String realm : realms) {
-				setupKieRules(realm, rules);
+				errors.addAll(setupKieRules(realm, rules));
 			}
 		}
-
+		return errors;
 	}
 
 	List<Tuple3<String, String, String>> processFileRealms(final String realm, String inputFileStrs) {
@@ -301,7 +317,8 @@ public class App {
 		return realms;
 	}
 
-	public Integer setupKieRules(final String realm, final List<Tuple3<String, String, String>> rules) {
+	public Set<String> setupKieRules(final String realm, final List<Tuple3<String, String, String>> rules) {
+		Set<String> errors = new HashSet<String>();
 		Integer count = 0;
 		try {
 			// load up the knowledge base
@@ -331,6 +348,7 @@ public class App {
 					if (kieBuilder.getResults().hasMessages(Message.Level.ERROR)) {
 						// log.error("Error in Rules for realm " + realm + " for rule file " + rule._2);
 						// log.info(kieBuilder.getResults().toString());
+						
 						if (fix) {
 							if (rule._2.equalsIgnoreCase("10_SendOfferNotificationToIntern.drl")) {
 								log.info("stop here");
@@ -348,6 +366,7 @@ public class App {
 							// extract the error lines
 							for (Message errorMsg : kieBuilder.getResults().getMessages()) {
 								String linetext = errorMsg.getText();
+								
 								if (loopcount> 10) {
 									log.error("Error #"+(++errorCount)+" Yikes! Cannot handle this one! ");
 									for (Message errorMsg2 : kieBuilder.getResults().getMessages()) {
@@ -553,6 +572,11 @@ public class App {
 							rule = Tuple.of(arule._1, arule._2, ruletext); // update the rule with the fixed text
 						} else {
 							ruleok = true;
+							for (Message msg : kieBuilder.getResults().getMessages()) {
+								if (msg.getText().contains("ERR")) {
+									errors.add(msg.getText());
+								}
+							}
 						}
 					} else {
 						ruleok = true;
@@ -586,7 +610,7 @@ public class App {
 		} catch (final Throwable t) {
 			t.printStackTrace();
 		}
-		return count;
+		return errors;
 	}
 
 	/**
