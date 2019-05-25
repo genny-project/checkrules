@@ -154,7 +154,7 @@ public class App {
 			String fileName = inputFileStr.replaceFirst(".*/(\\w+).*", "$1");
 			String fileNameExt = inputFileStr.replaceFirst(".*/\\w+\\.(.*)", "$1");
 			if (!file.isFile()) { // DIRECTORY
-				if (!fileName.startsWith("XX")) {
+				if ((!fileName.startsWith("XX"))&&(!StringUtils.endsWithIgnoreCase(inputFileStr, ".bpmn"))) {
 					String localRealm = realm;
 					if (fileName.startsWith("prj_") || fileName.startsWith("PRJ_")) {
 						localRealm = fileName.substring("prj_".length()).toLowerCase(); // extract realm name
