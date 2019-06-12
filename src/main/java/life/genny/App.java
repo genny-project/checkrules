@@ -154,7 +154,7 @@ public class App {
 			String fileName = inputFileStr.replaceFirst(".*/(\\w+).*", "$1");
 			String fileNameExt = inputFileStr.replaceFirst(".*/\\w+\\.(.*)", "$1");
 			if (!file.isFile()) { // DIRECTORY
-				if (!fileName.startsWith("XX")) {
+				if ((!fileName.startsWith("XX"))) {
 					String localRealm = realm;
 					if (fileName.startsWith("prj_") || fileName.startsWith("PRJ_")) {
 						localRealm = fileName.substring("prj_".length()).toLowerCase(); // extract realm name
@@ -225,16 +225,16 @@ public class App {
 																											// that
 																											// start
 																											// with XX
-						String bpmnText = null;
-						if (Vertx.currentContext() != null) {
-							bpmnText = buf.toString();
-						} else {
-							bpmnText = nonVertxFileText;
-						}
-
-						Tuple3<String, String, String> bpmn = (Tuple.of(realm, fileName + "." + fileNameExt, bpmnText));
-						log.info(realm + " Loading in BPMN:" + bpmn._1 + " of " + inputFileStr);
-						rules.add(bpmn);
+//						String bpmnText = null;
+//						if (Vertx.currentContext() != null) {
+//							bpmnText = buf.toString();
+//						} else {
+//							bpmnText = nonVertxFileText;
+//						}
+//
+//						Tuple3<String, String, String> bpmn = (Tuple.of(realm, fileName + "." + fileNameExt, bpmnText));
+//						log.info(realm + " Loading in BPMN:" + bpmn._1 + " of " + inputFileStr);
+//						rules.add(bpmn);
 					} else if ((!fileName.startsWith("XX")) && (fileNameExt.equalsIgnoreCase("xls"))) { // ignore files
 																										// that
 																										// start with XX
