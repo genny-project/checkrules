@@ -22,9 +22,9 @@
 		<java-version>1.8</java-version>
 		<genny-verticle.version>${version}</genny-verticle.version>
 		<genny-rules.version>${version}</genny-rules.version>
-		<drools.version>7.20.0.Final</drools.version>
-		<jbpm.version>7.20.0.Final</jbpm.version>
-		<kie.version>7.20.0.Final</kie.version>
+		<drools.version>7.23.0.Final</drools.version>
+		<jbpm.version>7.23.0.Final</jbpm.version>
+		<kie.version>7.23.0.Final</kie.version>
 
 	</properties>
 
