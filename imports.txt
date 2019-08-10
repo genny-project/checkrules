@@ -140,4 +140,5 @@ import com.google.gson.GsonBuilder;
 import life.genny.qwandautils.StringFormattingUtils;
 import life.genny.qwandautils.StorageUtils;
 import life.genny.qwanda.FileUploadDetails;
+import life.genny.qwanda.VisualControlType;
 
