@@ -22,7 +22,7 @@
 		<java-version>1.8</java-version>
 		<genny-verticle.version>${version}</genny-verticle.version>
 		<genny-rules.version>${version}</genny-rules.version>
-		<kie.version>7.24.0.Final</kie.version>
+		<kie.version>7.25.0.Final</kie.version>
 
 	</properties>
 
