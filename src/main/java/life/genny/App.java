@@ -9,7 +9,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -80,6 +82,15 @@ public class App {
 			jCommander.usage();
 			System.exit(-1);
 		}
+		Map<String,String> envs = new HashMap<String,String>();
+		String userHome = System.getenv("HOME");
+		envs.put("M2_HOME", userHome+"/.m2");
+		try {
+			setEnv(envs);
+		} catch (Exception e) {
+
+		}
+		
 		Set<String> errors =  main.runs();
 		
 		if (errors.isEmpty()) {
@@ -651,11 +662,11 @@ public class App {
 				}
 			}
 			if (rule._2.endsWith(".drl")) {
-				final String inMemoryDrlFileName = "src/main/resources/" + rule._2;
+				final String inMemoryDrlFileName = "src/main/resources/life/genny/rules/" + rule._2;
 				kfs.write(inMemoryDrlFileName, ks.getResources().newReaderResource(new StringReader(rule._3))
 						.setResourceType(ResourceType.DRL));
-			}
-			if (rule._2.endsWith(".bpmn")) {
+			} 
+			else if (rule._2.endsWith(".bpmn")) {
 				final String inMemoryDrlFileName = "src/main/resources/" + rule._2;
 				kfs.write(inMemoryDrlFileName, ks.getResources().newReaderResource(new StringReader(rule._3))
 						.setResourceType(ResourceType.BPMN2));
@@ -776,4 +787,30 @@ public class App {
 
 	}
 
+	protected static void setEnv(Map<String, String> newenv) throws Exception {
+		  try {
+		    Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");
+		    Field theEnvironmentField = processEnvironmentClass.getDeclaredField("theEnvironment");
+		    theEnvironmentField.setAccessible(true);
+		    Map<String, String> env = (Map<String, String>) theEnvironmentField.get(null);
+		    env.putAll(newenv);
+		    Field theCaseInsensitiveEnvironmentField = processEnvironmentClass.getDeclaredField("theCaseInsensitiveEnvironment");
+		    theCaseInsensitiveEnvironmentField.setAccessible(true);
+		    Map<String, String> cienv = (Map<String, String>)     theCaseInsensitiveEnvironmentField.get(null);
+		    cienv.putAll(newenv);
+		  } catch (NoSuchFieldException e) {
+		    Class[] classes = Collections.class.getDeclaredClasses();
+		    Map<String, String> env = System.getenv();
+		    for(Class cl : classes) {
+		      if("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
+		        Field field = cl.getDeclaredField("m");
+		        field.setAccessible(true);
+		        Object obj = field.get(env);
+		        Map<String, String> map = (Map<String, String>) obj;
+		        map.clear();
+		        map.putAll(newenv);
+		      }
+		    }
+		  }
+		}
 }
