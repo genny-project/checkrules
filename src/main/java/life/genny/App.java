@@ -333,6 +333,9 @@ public class App {
 		Integer count = 0;
 		try {
 			// load up the knowledge base
+			if (ks == null) {
+				 ks = KieServices.Factory.get();
+			}
 			final KieFileSystem kfs = ks.newKieFileSystem();
 			int errorCount = 0;
 
