@@ -771,6 +771,17 @@ public class App {
 					Matcher matcher2 = pattern2.matcher(iline);
 					if (matcher2.matches()) {
 						String iline2 = matcher2.group(1);
+						String iline2trimmed = iline2.trim();
+						if (StringUtils.isAllUpperCase(iline2trimmed) && !(iline2trimmed.equals("GPS"))) {
+							Pattern pattern3 = Pattern.compile(".*\\.(\\S+\\.\\S+)\\s*");
+							Matcher matcher3 = pattern3.matcher(iline);
+							if (matcher3.matches()) {
+								iline2 = matcher3.group(1); // get the enum
+							}
+							// remove the last bit
+							String lastbit = "."+iline2trimmed;
+							iline = StringUtils.removeEnd(iline,lastbit );
+						}
 						// log.info(iline2);
 						importMap.put(iline2.trim(), iline.trim());
 						log.info(iline2 + ":" + iline);
@@ -797,6 +808,7 @@ public class App {
 		importMap.put("ViewType.Detail", "life.genny.utils.Layout.ViewType");
 		importMap.put("ViewType.Tab", "life.genny.utils.Layout.ViewType");
 		importMap.put("SearchEntity.StringFilter.LIKE", "life.genny.qwanda.entity.SearchEntity.StringFilter.*");
+		importMap.put("GennySettings.hostIP", "life.genny.qwandautils.GennySettings");
 
 	}
 
