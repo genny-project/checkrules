@@ -809,7 +809,10 @@ public class App {
 		importMap.put("ViewType.Tab", "life.genny.utils.Layout.ViewType");
 		importMap.put("SearchEntity.StringFilter.LIKE", "life.genny.qwanda.entity.SearchEntity.StringFilter.*");
 		importMap.put("GennySettings.hostIP", "life.genny.qwandautils.GennySettings");
-
+		importMap.put("VisualControlType.GROUP_LABEL", "life.genny.qwanda.VisualControlType");
+		importMap.put("VisualControlType.GROUP_CLICKABLE_WRAPPER", "life.genny.qwanda.VisualControlType");
+		importMap.put("VisualControlType.GROUP_WRAPPER", "life.genny.qwanda.VisualControlType");
+		importMap.put("VisualControlType.CONTENT_WRAPPER", "life.genny.qwanda.VisualControlType");
 	}
 
 	protected static void setEnv(Map<String, String> newenv) throws Exception {
