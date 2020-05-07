@@ -812,7 +812,10 @@ public class App {
 		importMap.put("VisualControlType.GROUP_LABEL", "life.genny.qwanda.VisualControlType");
 		importMap.put("VisualControlType.GROUP_CLICKABLE_WRAPPER", "life.genny.qwanda.VisualControlType");
 		importMap.put("VisualControlType.GROUP_WRAPPER", "life.genny.qwanda.VisualControlType");
-		importMap.put("VisualControlType.CONTENT_WRAPPER", "life.genny.qwanda.VisualControlType");
+		importMap.put("ThemePosition.WRAPPER", "life.genny.qwanda.VisualControlType");
+		importMap.put("ThemePosition.CENTRE", "life.genny.qwanda.VisualControlType");
+		importMap.put("FramePosition.CENTRE", "life.genny.qwanda.VisualControlType");
+		
 	}
 
 	protected static void setEnv(Map<String, String> newenv) throws Exception {
