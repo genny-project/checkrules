@@ -9,7 +9,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -66,8 +68,8 @@ public class App {
 
 	@Parameter(names = { "--fix", "-f" }, description = "try and fix")
 	private boolean fix = false;
-	
-	private Integer ruleCount=1;
+
+	private Integer ruleCount = 1;
 
 	public static void main(String... args) {
 		App main = new App();
@@ -80,11 +82,20 @@ public class App {
 			jCommander.usage();
 			System.exit(-1);
 		}
-		Set<String> errors =  main.runs();
-		
+		Map<String, String> envs = new HashMap<String, String>();
+		String userHome = System.getenv("HOME");
+		envs.put("M2_HOME", userHome + "/.m2");
+		try {
+			setEnv(envs);
+		} catch (Exception e) {
+
+		}
+
+		Set<String> errors = main.runs();
+
 		if (errors.isEmpty()) {
 			System.out.println("All good!");
-			return ;
+			return;
 		} else {
 			System.exit(errors.size());
 		}
@@ -92,7 +103,6 @@ public class App {
 	}
 
 	public Set<String> runs() {
-
 
 		setupImportMap();
 
@@ -102,7 +112,7 @@ public class App {
 		}
 
 		Set<String> errors = new HashSet<String>();
-		
+
 		for (String rulesdir : rulesdirs) {
 			System.out.println("Rulesdir = " + rulesdir);
 			Set<String> result = loadInitialRules(rulesdir);
@@ -111,8 +121,8 @@ public class App {
 			}
 		}
 
-		System.out.println("Finished with "+errors.size()+" errors");
-		
+		System.out.println("Finished with " + errors.size() + " errors");
+
 		return errors;
 
 	}
@@ -281,7 +291,7 @@ public class App {
 				if (!packageline) {
 					packageline = true;
 					lines.add(line);
-				}else {
+				} else {
 					log.error("Fix Duplicate Package declaration");
 				}
 			} else {
@@ -322,6 +332,9 @@ public class App {
 		Integer count = 0;
 		try {
 			// load up the knowledge base
+			if (ks == null) {
+				ks = KieServices.Factory.get();
+			}
 			final KieFileSystem kfs = ks.newKieFileSystem();
 			int errorCount = 0;
 
@@ -336,24 +349,25 @@ public class App {
 				boolean ruleok = false;
 				Tuple3<String, String, String> rule = arule;
 				int index = 1;
-				int loopcount=0;
+				int loopcount = 0;
 				while (!ruleok) {
 					loopcount++;
 					// test each rule as it gets entered
-					log.info("Checking rule "+ruleCount+" of "+rules.size()+" " + rule._1 + " [" + rule._2 + "] pass " + (index++));
+					log.info("Checking rule " + ruleCount + " of " + rules.size() + " " + rule._1 + " [" + rule._2
+							+ "] pass " + (index++));
 					if (writeRulesIntoKieFileSystem(realm, rules, kfs, rule)) {
 						count++;
 					}
 					final KieBuilder kieBuilder = ks.newKieBuilder(kfs).buildAll();
 					if (kieBuilder.getResults().hasMessages(Message.Level.ERROR)) {
 						// log.error("Error in Rules for realm " + realm + " for rule file " + rule._2);
-						// log.info(kieBuilder.getResults().toString());
-						
+						log.info(kieBuilder.getResults().toString());
+
 						if (fix) {
 							if (rule._2.equalsIgnoreCase("10_SendOfferNotificationToIntern.drl")) {
 								log.info("stop here");
 							}
-							
+
 							// dumbly get rid of duplicate packages
 							List<String> filelinesdedup = getFileAsList(fileMap.get(rule._2));
 							PrintWriter pw2 = new PrintWriter(new FileWriter(fileMap.get(rule._2)));
@@ -362,13 +376,13 @@ public class App {
 							}
 							pw2.close();
 							pw2.flush();
-							
+
 							// extract the error lines
 							for (Message errorMsg : kieBuilder.getResults().getMessages()) {
 								String linetext = errorMsg.getText();
-								
-								if (loopcount> 10) {
-									log.error("Error #"+(++errorCount)+" Yikes! Cannot handle this one! ");
+
+								if (loopcount > 10) {
+									log.error("Error #" + (++errorCount) + " Yikes! Cannot handle this one! ");
 									for (Message errorMsg2 : kieBuilder.getResults().getMessages()) {
 										String linetext2 = errorMsg2.getText();
 										log.error(linetext2);
@@ -378,7 +392,7 @@ public class App {
 								}
 
 								if (linetext.contains("resolve")) {
-									log.info("Error #"+(++errorCount)+" Fix Missing Import");
+									log.info("Error #" + (++errorCount) + " Fix Missing Import");
 									String[] lines = linetext.split("\n");
 									Set<String> imports = new HashSet<String>();
 									for (String line : lines) {
@@ -398,56 +412,68 @@ public class App {
 												// rule._2);
 												imports.add(matcher.group(1));
 
-											} 
-											
+											}
 											else {
 												pattern = Pattern.compile(
-														"Unable\\sto\\sresolve\\sObjectType\\s\\'(\\S+)\\'");
+														".*\\s+(\\S+)\\s+resolves\\sto\\sa\\spackage");
 												matcher = pattern.matcher(line);
 												if (matcher.matches()) {
 													// log.info("Found Missing Import - " + matcher.group(1) + " in file " +
 													// rule._2);
 													imports.add(matcher.group(1));
 
-												} 
-											
-											
+												}
 											else {
-												pattern = Pattern.compile(
-														"Rule\\sCompilation\\serror\\s(\\S+)\\s+cannot be resolved");
+												pattern = Pattern
+														.compile("Unable\\sto\\sresolve\\sObjectType\\s\\'(\\S+)\\'");
 												matcher = pattern.matcher(line);
 												if (matcher.matches()) {
 													// log.info("Found Missing Import - " + matcher.group(1) + " in file
 													// " +
 													// rule._2);
 													imports.add(matcher.group(1));
-												} else {
+
+												}
+
+												else {
 													pattern = Pattern.compile(
-															"(\\w+)\\s+cannot be resolved");
+															"Rule\\sCompilation\\serror\\s(\\S+)\\s+cannot be resolved");
 													matcher = pattern.matcher(line);
 													if (matcher.matches()) {
-														// log.info("Found Missing Import - " + matcher.group(1) + " in file
+														// log.info("Found Missing Import - " + matcher.group(1) + " in
+														// file
 														// " +
 														// rule._2);
 														imports.add(matcher.group(1));
 													} else {
-														pattern = Pattern.compile(
-																"Rule\\sCompilation\\serror\\sThe\\smethod\\sfilter\\(Predicate\\<\\?\\ssuper\\s(\\S+)\\>\\)\\sin\\sthe\\stype\\sStream\\<(\\S+)\\>\\s+is\\snot\\sapplicable.*");
+														pattern = Pattern.compile("(\\w+)\\s+cannot be resolved");
 														matcher = pattern.matcher(line);
 														if (matcher.matches()) {
-
+															// log.info("Found Missing Import - " + matcher.group(1) + "
+															// in file
+															// " +
+															// rule._2);
 															imports.add(matcher.group(1));
 														} else {
 															pattern = Pattern.compile(
-																	"Type\\smismatch\\:\\scannot\\sconvert\\sfrom\\selement\\stype\\s(\\S+)\\sto\\s(\\S+)");
+																	"Rule\\sCompilation\\serror\\sThe\\smethod\\sfilter\\(Predicate\\<\\?\\ssuper\\s(\\S+)\\>\\)\\sin\\sthe\\stype\\sStream\\<(\\S+)\\>\\s+is\\snot\\sapplicable.*");
 															matcher = pattern.matcher(line);
 															if (matcher.matches()) {
 
-																// do nothing
+																imports.add(matcher.group(1));
 															} else {
-																if (line.contains("is not applicable for the arguments")) {
-																	log.error(line);
-																	ruleok = true;
+																pattern = Pattern.compile(
+																		"Type\\smismatch\\:\\scannot\\sconvert\\sfrom\\selement\\stype\\s(\\S+)\\sto\\s(\\S+)");
+																matcher = pattern.matcher(line);
+																if (matcher.matches()) {
+
+																	// do nothing
+																} else {
+																	if (line.contains(
+																			"is not applicable for the arguments")) {
+																		log.error(line);
+																		ruleok = true;
+																	}
 																}
 															}
 														}
@@ -455,7 +481,7 @@ public class App {
 												}
 											}
 										}
-									}
+										}
 									}
 									// log.info("found " + imports.size() + " imports to be added " + imports);
 									String importsLine = "";
@@ -495,7 +521,7 @@ public class App {
 									break;
 								} else {
 									if (linetext.contains("mismatched input '<eof>'")) {
-										log.info("Error #"+(++errorCount)+" Fix // comments");
+										log.info("Error #" + (++errorCount) + " Fix // comments");
 										List<String> filelines = getFileAsList(fileMap.get(rule._2));
 										// Now write back
 										PrintWriter pw = new PrintWriter(new FileWriter(fileMap.get(rule._2)));
@@ -513,10 +539,9 @@ public class App {
 													// + " */");
 													// remove any internal comments
 													String commentText = matcher.group(2);
-													commentText = commentText.replaceAll("/\\*","");
-													commentText = commentText.replaceAll("\\*/","");
-													pw.write(
-															matcher.group(1) + "/* " + commentText + " */" + "\n");
+													commentText = commentText.replaceAll("/\\*", "");
+													commentText = commentText.replaceAll("\\*/", "");
+													pw.write(matcher.group(1) + "/* " + commentText + " */" + "\n");
 												} else {
 													pw.write(line + "\n");
 												}
@@ -532,7 +557,7 @@ public class App {
 									} else {
 										if (linetext.contains(
 												"package, unit, import, global, declare, function, rule, query")) {
-											log.info("Error #"+(++errorCount)+" Fix missing semi colon");
+											log.info("Error #" + (++errorCount) + " Fix missing semi colon");
 											List<String> filelines = getFileAsList(fileMap.get(rule._2));
 											// Now write back
 											PrintWriter pw = new PrintWriter(new FileWriter(fileMap.get(rule._2)));
@@ -562,7 +587,7 @@ public class App {
 											pw.flush();
 											break;
 										} else {
-											log.error("Error #"+(++errorCount)+" Unknown error - "+linetext);
+											log.error("Error #" + (++errorCount) + " Unknown error - " + linetext);
 											ruleok = true;
 										}
 									}
@@ -651,11 +676,10 @@ public class App {
 				}
 			}
 			if (rule._2.endsWith(".drl")) {
-				final String inMemoryDrlFileName = "src/main/resources/" + rule._2;
+				final String inMemoryDrlFileName = "src/main/resources/life/genny/rules/" + rule._2;
 				kfs.write(inMemoryDrlFileName, ks.getResources().newReaderResource(new StringReader(rule._3))
 						.setResourceType(ResourceType.DRL));
-			}
-			if (rule._2.endsWith(".bpmn")) {
+			} else if (rule._2.endsWith(".bpmn")) {
 				final String inMemoryDrlFileName = "src/main/resources/" + rule._2;
 				kfs.write(inMemoryDrlFileName, ks.getResources().newReaderResource(new StringReader(rule._3))
 						.setResourceType(ResourceType.BPMN2));
@@ -747,6 +771,17 @@ public class App {
 					Matcher matcher2 = pattern2.matcher(iline);
 					if (matcher2.matches()) {
 						String iline2 = matcher2.group(1);
+						String iline2trimmed = iline2.trim();
+						if (StringUtils.isAllUpperCase(iline2trimmed) && !(iline2trimmed.equals("GPS"))) {
+							Pattern pattern3 = Pattern.compile(".*\\.(\\S+\\.\\S+)\\s*");
+							Matcher matcher3 = pattern3.matcher(iline);
+							if (matcher3.matches()) {
+								iline2 = matcher3.group(1); // get the enum
+							}
+							// remove the last bit
+							String lastbit = "."+iline2trimmed;
+							iline = StringUtils.removeEnd(iline,lastbit );
+						}
 						// log.info(iline2);
 						importMap.put(iline2.trim(), iline.trim());
 						log.info(iline2 + ":" + iline);
@@ -760,20 +795,54 @@ public class App {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		// TODO, this looks ugly. Why are enums being used???? should be baseentity codes. fix
-		
-		importMap.put("ViewType.Form","life.genny.utils.Layout.ViewType");
-		importMap.put("ViewType.Table","life.genny.utils.Layout.ViewType");
-		importMap.put("ViewType.List","life.genny.utils.Layout.ViewType");
-		importMap.put("ViewType.SplitView","life.genny.utils.Layout.ViewType");
-		importMap.put("ViewType.Custom","life.genny.utils.Layout.ViewType");
-		importMap.put("ViewType.Bucket","life.genny.utils.Layout.ViewType");
-		importMap.put("ViewType.Detail","life.genny.utils.Layout.ViewType");
-		importMap.put("ViewType.Tab","life.genny.utils.Layout.ViewType");
-		importMap.put("SearchEntity.StringFilter.LIKE", "life.genny.qwanda.entity.SearchEntity.StringFilter.*");
-		
 
+		// TODO, this looks ugly. Why are enums being used???? should be baseentity
+		// codes. fix
+
+		importMap.put("ViewType.Form", "life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.Table", "life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.List", "life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.SplitView", "life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.Custom", "life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.Bucket", "life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.Detail", "life.genny.utils.Layout.ViewType");
+		importMap.put("ViewType.Tab", "life.genny.utils.Layout.ViewType");
+		importMap.put("SearchEntity.StringFilter.LIKE", "life.genny.qwanda.entity.SearchEntity.StringFilter.*");
+		importMap.put("GennySettings.hostIP", "life.genny.qwandautils.GennySettings");
+		importMap.put("VisualControlType.GROUP_LABEL", "life.genny.qwanda.VisualControlType");
+		importMap.put("VisualControlType.GROUP_CLICKABLE_WRAPPER", "life.genny.qwanda.VisualControlType");
+		importMap.put("VisualControlType.GROUP_WRAPPER", "life.genny.qwanda.VisualControlType");
+		importMap.put("ThemePosition.WRAPPER", "life.genny.models.ThemePosition.WRAPPER");
+		importMap.put("ThemePosition.CENTRE", "life.genny.models.ThemePosition.CENTRE");
+		importMap.put("FramePosition.WRAPPER", "life.genny.models.FramePosition.WRAPPER");
+		importMap.put("FramePosition.CENTRE", "life.genny.models.FramePosition.CENTRE");		
 	}
 
+	protected static void setEnv(Map<String, String> newenv) throws Exception {
+		try {
+			Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");
+			Field theEnvironmentField = processEnvironmentClass.getDeclaredField("theEnvironment");
+			theEnvironmentField.setAccessible(true);
+			Map<String, String> env = (Map<String, String>) theEnvironmentField.get(null);
+			env.putAll(newenv);
+			Field theCaseInsensitiveEnvironmentField = processEnvironmentClass
+					.getDeclaredField("theCaseInsensitiveEnvironment");
+			theCaseInsensitiveEnvironmentField.setAccessible(true);
+			Map<String, String> cienv = (Map<String, String>) theCaseInsensitiveEnvironmentField.get(null);
+			cienv.putAll(newenv);
+		} catch (NoSuchFieldException e) {
+			Class[] classes = Collections.class.getDeclaredClasses();
+			Map<String, String> env = System.getenv();
+			for (Class cl : classes) {
+				if ("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
+					Field field = cl.getDeclaredField("m");
+					field.setAccessible(true);
+					Object obj = field.get(env);
+					Map<String, String> map = (Map<String, String>) obj;
+					map.clear();
+					map.putAll(newenv);
+				}
+			}
+		}
+	}
 }

@@ -5,7 +5,7 @@
 	<groupId>life.genny</groupId>
 	<artifactId>checkrules</artifactId>
 
-	<version>3.1.0</version>
+	<version>7.0.0</version>
 
 	<organization>
 		<name>genny-project</name>
@@ -19,9 +19,8 @@
 
 		<!--java version -->
 		<java-version>1.8</java-version>
-		<genny-verticle.version>${version}</genny-verticle.version>
-		<genny-rules.version>${version}</genny-rules.version>
-		<kie.version>7.26.0.Final</kie.version>
+		<genny-verticle.version>${project.version}</genny-verticle.version>
+		<genny-rules.version>${project.version}</genny-rules.version>
 
 	</properties>
 
@@ -32,7 +31,23 @@
 			<groupId>life.genny</groupId>
 			<artifactId>genny-rules</artifactId>
 			<version>${genny-rules.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.hazelcast</groupId>
+					<artifactId>hazelcast</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.vertx</groupId>
+					<artifactId>vertx-hazelcast</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.hazelcast</groupId>
+					<artifactId>hazelcast-client</artifactId>
+				</exclusion>
+
+			</exclusions>
 		</dependency>
+
 
 		<dependency>
 			<groupId>junit</groupId>
@@ -81,44 +96,7 @@
 			<artifactId>commons-codec</artifactId>
 			<version>1.11</version>
 		</dependency>
-		<dependency>
-			<groupId>org.kie</groupId>
-			<artifactId>kie-api</artifactId>
-			<version>${kie.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.drools</groupId>
-			<artifactId>drools-decisiontables</artifactId>
-			<version>${kie.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.drools</groupId>
-			<artifactId>drools-core</artifactId>
-			<version>${kie.version}</version>
-		</dependency>
 
-		<dependency>
-			<groupId>org.drools</groupId>
-			<artifactId>drools-compiler</artifactId>
-			<version>${kie.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.jbpm</groupId>
-			<artifactId>jbpm-flow</artifactId>
-			<version>${kie.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.jbpm</groupId>
-			<artifactId>jbpm-flow-builder</artifactId>
-			<version>${kie.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.jbpm</groupId>
-			<artifactId>jbpm-bpmn2</artifactId>
-			<version>${kie.version}</version>
-		</dependency>
 		<dependency>
 			<groupId>org.apache.xmlbeans</groupId>
 			<artifactId>xmlbeans</artifactId>
@@ -130,38 +108,20 @@
 			<artifactId>vavr</artifactId>
 			<version>0.9.1</version>
 		</dependency>
-		<dependency>
-			<groupId>life.genny</groupId>
-			<artifactId>genny-verticle-rules</artifactId>
-			<version>${genny-verticle.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>com.hazelcast</groupId>
-					<artifactId>hazelcast</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>io.vertx</groupId>
-					<artifactId>vertx-hazelcast</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.hazelcast</groupId>
-					<artifactId>hazelcast-client</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
+
 	</dependencies>
 	<build>
 		<plugins>
-<plugin>
-  <groupId>com.google.cloud.tools</groupId>
-  <artifactId>jib-maven-plugin</artifactId>
-  <version>0.10.0</version>
-  <configuration>
-    <to>
-      <image>registry.hub.docker.com/gennyproject/checkrules</image>
-    </to>
-  </configuration>
-</plugin>
+			<plugin>
+				<groupId>com.google.cloud.tools</groupId>
+				<artifactId>jib-maven-plugin</artifactId>
+				<version>0.10.0</version>
+				<configuration>
+					<to>
+						<image>registry.hub.docker.com/gennyproject/checkrules</image>
+					</to>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
@@ -175,42 +135,48 @@
 					<target>${java-version}</target>
 				</configuration>
 			</plugin>
-                      <plugin>
-                                <groupId>org.apache.maven.plugins</groupId>
-                                <artifactId>maven-shade-plugin</artifactId>
-                                <version>2.3</version>
-                                <executions>
-                                        <execution>
-                                                <phase>package</phase>
-                                                <goals>
-                                                        <goal>shade</goal>
-                                                </goals>
-                                                <configuration>
-                                                        <transformers>
-                                                                <transformer
-                                                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                                                        <manifestEntries>
-                                                                                <Main-Class>life.genny.App</Main-Class>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.2.1</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<transformers>
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<manifestEntries>
+										<Main-Class>life.genny.App</Main-Class>
 
-                                                                        </manifestEntries>
-                                                                </transformer>
-                                                        </transformers>
-                                                        <artifactSet />
-                                                        <outputFile>${project.build.directory}/${project.artifactId}-fat.jar</outputFile>
-                                                        <filters>
-                                                                <filter>
-                                                                        <artifact>*:*</artifact>
-                                                                        <excludes>
-                                                                                <exclude>META-INF/*.SF</exclude>
-                                                                                <exclude>META-INF/*.DSA</exclude>
-                                                                                <exclude>META-INF/*.RSA</exclude>
-                                                                        </excludes>
-                                                                </filter>
-                                                        </filters>
-                                                </configuration>
-                                        </execution>
-                                </executions>
-                        </plugin>
+									</manifestEntries>
+								</transformer>
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+									<resource>META-INF/kie.conf</resource>
+								</transformer>
+							
+							</transformers>
+							<artifactSet />
+							<outputFile>${project.build.directory}/${project.artifactId}-fat.jar</outputFile>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 
 		<pluginManagement>

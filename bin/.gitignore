@@ -8,6 +8,7 @@ pom.xml.next
 release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
+.settings/org.eclipse.jdt.core.prefs
 .mvn/timing.properties
 .classpath
 # Avoid ignoring Maven wrapper jar file (.jar files are usually ignored)

@@ -1,6 +1,5 @@
-FROM java:8 
-#FROM openjdk:8-jre-slim
-#FROM openjdk:8-jre-alpine
+#FROM java:8 
+FROM openjdk:8u212-jre-alpine3.9
 RUN mkdir /rules
 COPY ./app.sh / 
 COPY ./imports.txt /
