@@ -60,6 +60,12 @@ public class App {
 	@Parameter(names = "--help", help = true)
 	private boolean help = false;
 
+	@Parameter(names = { "--drlfile", "-d" }, description = "drl file path")
+	private String drlfile;
+
+	@Parameter(names = { "--all", "-a" }, description = "check all rules in one go")
+	private boolean doAllAtOnce = false;
+	
 	@Parameter(names = { "--rulesdir", "-r" }, description = "Rules Dir", required = false)
 	List<String> rulesdirs;
 
@@ -75,7 +81,7 @@ public class App {
 		App main = new App();
 
 		if (main.verbose) {
-			System.out.println("Genny Drools Rules Checker V1.0\n");
+			System.out.println("Genny Drools Rules Checker V7.1.0\n");
 		}
 		JCommander jCommander = new JCommander(main, args);
 		if ((main.help)) {
@@ -105,13 +111,16 @@ public class App {
 	public Set<String> runs() {
 
 		setupImportMap();
+		
+		Set<String> errors = new HashSet<String>();
+
+		if (drlfile==null) {
 
 		if ((rulesdirs == null) || rulesdirs.isEmpty()) {
 			rulesdirs = new ArrayList<String>();
 			rulesdirs.add("/rules"); // default
 		}
 
-		Set<String> errors = new HashSet<String>();
 
 		for (String rulesdir : rulesdirs) {
 			System.out.println("Rulesdir = " + rulesdir);
@@ -119,6 +128,14 @@ public class App {
 			if (result != null) {
 				errors.addAll(result);
 			}
+		}
+		} else {
+
+			Set<String> result = loadInitialRules(drlfile);
+			if (result != null) {
+				errors.addAll(result);
+			}
+
 		}
 
 		System.out.println("Finished with " + errors.size() + " errors");
@@ -139,6 +156,9 @@ public class App {
 		// setupKieRules("life.genny.rules", life.genny.rules);
 
 		List<Tuple3<String, String, String>> rules = processFileRealms("genny", rulesDir);
+		
+		
+	
 
 		realms = getRealms(rules);
 		realms.stream().forEach(System.out::println);
@@ -344,6 +364,26 @@ public class App {
 			// Charset.forName("UTF-8"));
 			// log.info("Read New Rules set from File");
 
+			
+			if (doAllAtOnce) {
+				Set<String> rets = new HashSet<>();
+				for (final Tuple3<String, String, String> arule : rules) {
+					boolean ruleok = false;
+					Tuple3<String, String, String> rule = arule;
+						writeRulesIntoKieFileSystem(realm, rules, kfs, rule);
+				}
+				final KieBuilder kieBuilder = ks.newKieBuilder(kfs).buildAll();
+				if (kieBuilder.getResults().hasMessages(Message.Level.ERROR)) {
+					// log.error("Error in Rules for realm " + realm + " for rule file " + rule._2);
+					log.info(kieBuilder.getResults().toString());
+					rets.add(kieBuilder.getResults().toString());
+				}
+			
+				
+				return rets;
+			}
+			
+			
 			// Write each rule into it's realm cache
 			for (final Tuple3<String, String, String> arule : rules) {
 				boolean ruleok = false;
