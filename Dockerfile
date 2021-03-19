@@ -10,7 +10,8 @@
 #ENV JAVA_OPTS=""
 #ENTRYPOINT ["/app.sh"]
 #CMD []
-FROM java:8-jdk-alpine
+#FROM java:8-jdk-alpine
+FROM adoptopenjdk/openjdk11:alpine
 COPY ./target/checkrules-fat.jar /usr/app/
 COPY ./imports.txt /usr/app/
 WORKDIR /usr/app
