@@ -7,6 +7,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.PrintStream;
+import java.io.OutputStream;
 import java.io.StringReader;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
@@ -255,16 +257,16 @@ public class App {
 																											// that
 																											// start
 																											// with XX
-//						String bpmnText = null;
-//						if (Vertx.currentContext() != null) {
-//							bpmnText = buf.toString();
-//						} else {
-//							bpmnText = nonVertxFileText;
-//						}
-//
-//						Tuple3<String, String, String> bpmn = (Tuple.of(realm, fileName + "." + fileNameExt, bpmnText));
-//						log.info(realm + " Loading in BPMN:" + bpmn._1 + " of " + inputFileStr);
-//						rules.add(bpmn);
+						String bpmnText = null;
+						if (Vertx.currentContext() != null) {
+							bpmnText = buf.toString();
+						} else {
+							bpmnText = nonVertxFileText;
+						}
+
+						Tuple3<String, String, String> bpmn = (Tuple.of(realm, fileName + "." + fileNameExt, bpmnText));
+						log.info(realm + " Loading in BPMN:" + bpmn._1 + " of " + inputFileStr);
+						rules.add(bpmn);
 					} else if ((!fileName.startsWith("XX")) && (fileNameExt.equalsIgnoreCase("xls"))) { // ignore files
 																										// that
 																										// start with XX
@@ -372,13 +374,19 @@ public class App {
 					Tuple3<String, String, String> rule = arule;
 						writeRulesIntoKieFileSystem(realm, rules, kfs, rule);
 				}
+
+				// Dirty trick to stop KieBuilder from printing to screen
+				PrintStream out = System.out;
+				System.setOut(new PrintStream(OutputStream.nullOutputStream()));
 				final KieBuilder kieBuilder = ks.newKieBuilder(kfs).buildAll();
+				System.setOut(out);
+				System.out.println("\n");
+
 				if (kieBuilder.getResults().hasMessages(Message.Level.ERROR)) {
 					// log.error("Error in Rules for realm " + realm + " for rule file " + rule._2);
 					log.info(kieBuilder.getResults().toString());
 					rets.add(kieBuilder.getResults().toString());
 				}
-			
 				
 				return rets;
 			}
