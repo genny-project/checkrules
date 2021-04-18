@@ -25,10 +25,6 @@ import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.core.config.Configurator;
 
-import org.slf4j.LoggerFactory;
-import ch.qos.logback.classic.Level;
-// import ch.qos.logback.classic.Logger;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
 import org.kie.api.KieBase;
@@ -356,6 +352,15 @@ public class App {
 		return realms;
 	}
 
+	public static void printVersion(Class<?> clazz) {
+        Package p = clazz.getPackage();
+        System.out.printf("%s%n  Title: %s%n  Version: %s%n  Vendor: %s%n",
+                          clazz.getName(),
+                          p.getImplementationTitle(),
+                          p.getImplementationVersion(),
+                          p.getImplementationVendor());
+    }
+
 	public Set<String> setupKieRules(final String realm, final List<Tuple3<String, String, String>> rules) {
 		Set<String> errors = new HashSet<String>();
 		Integer count = 0;
@@ -385,11 +390,12 @@ public class App {
 				// Dirty trick to stop KieBuilder from printing to screen
 				// The library uses SLF4J and logback for its internal logging
 				System.out.println("PRINTING IT");
-				System.out.println(LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME));
-				System.out.println(LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).getClass());
-				ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger)LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
-				Level lvl = root.getLevel();
-				root.setLevel(Level.OFF);
+				System.out.println(org.slf4j.Logger.ROOT_LOGGER_NAME);
+				System.out.println(org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME));
+				System.out.println(org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).getClass());
+				ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger)org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+				ch.qos.logback.classic.Level lvl = root.getLevel();
+				root.setLevel(ch.qos.logback.classic.Level.OFF);
 				// Build to find errors
 				final KieBuilder kieBuilder = ks.newKieBuilder(kfs).buildAll();
 				// Reset log level after building
