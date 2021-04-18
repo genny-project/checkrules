@@ -1,5 +1,6 @@
 package life.genny;
 
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -21,6 +22,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.logging.log4j.core.config.Configurator;
+
+import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.Level;
+// import ch.qos.logback.classic.Logger;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
@@ -376,12 +383,14 @@ public class App {
 				}
 
 				// Dirty trick to stop KieBuilder from printing to screen
-				PrintStream out = System.out;
-				System.setOut(new PrintStream(OutputStream.nullOutputStream()));
-				System.out.println("PRINTING TEST LOG 1");
-				log.info("PRINTING TEST LOG 2");
+				// The library uses SLF4J and logback for its internal logging
+				ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger)LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+				Level lvl = root.getLevel();
+				root.setLevel(Level.OFF);
+				// Build to find errors
 				final KieBuilder kieBuilder = ks.newKieBuilder(kfs).buildAll();
-				System.setOut(out);
+				// Reset log level after building
+				root.setLevel(lvl);
 				System.out.println("\n");
 
 				if (kieBuilder.getResults().hasMessages(Message.Level.ERROR)) {
