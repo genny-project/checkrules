@@ -377,15 +377,9 @@ public class App {
 
 				// Dirty trick to stop KieBuilder from printing to screen
 				PrintStream out = System.out;
-				System.setOut(new PrintStream(new OutputStream() {
-					public  void    close() {}
-					public  void    flush() {}
-					public  void    write(byte[] b) {}
-					public  void    write(byte[] b, int off, int len) {}
-					public  void    write(int b) {}
-
-					} )
-				);
+				System.setOut(new PrintStream(OutputStream.nullOutputStream()));
+				System.out.println("PRINTING TEST LOG 1");
+				log.info("PRINTING TEST LOG 2");
 				final KieBuilder kieBuilder = ks.newKieBuilder(kfs).buildAll();
 				System.setOut(out);
 				System.out.println("\n");
