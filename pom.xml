@@ -61,6 +61,22 @@
 		</dependency>
 
 		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.12</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.26</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>jcl-over-slf4j</artifactId>
+			<version>1.7.26</version>
+		</dependency>
+
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.13.1</version>
@@ -120,21 +136,6 @@
 			<version>0.9.1</version>
 		</dependency>
 
-		<!-- <dependency> -->
-		<!-- 	<groupId>log4j</groupId> -->
-		<!-- 	<artifactId>log4j</artifactId> -->
-		<!-- 	<version>1.2.12</version> -->
-		<!-- </dependency> -->
-		<!-- <dependency> -->
-		<!-- 	<groupId>org.slf4j</groupId> -->
-		<!-- 	<artifactId>slf4j-api</artifactId> -->
-		<!-- 	<version>1.7.26</version> -->
-		<!-- </dependency> -->
-		<!-- <dependency> -->
-		<!-- 	<groupId>org.slf4j</groupId> -->
-		<!-- 	<artifactId>jcl-over-slf4j</artifactId> -->
-		<!-- 	<version>1.7.26</version> -->
-		<!-- </dependency> -->
 	</dependencies>
 	<build>
 		<plugins>
