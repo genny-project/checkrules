@@ -389,13 +389,13 @@ public class App {
 
 				// Dirty trick to stop KieBuilder from printing to screen
 				// The library uses SLF4J and logback for its internal logging
-				ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
-				ch.qos.logback.classic.Level lvl = root.getLevel();
-				root.setLevel(ch.qos.logback.classic.Level.OFF);
+//				ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+//				ch.qos.logback.classic.Level lvl = root.getLevel();
+//				root.setLevel(ch.qos.logback.classic.Level.OFF);
 				// Build to find errors
 				final KieBuilder kieBuilder = ks.newKieBuilder(kfs).buildAll();
 				// Reset log level after building
-				root.setLevel(lvl);
+//				root.setLevel(lvl);
 				System.out.println("\n");
 
 				if (kieBuilder.getResults().hasMessages(Message.Level.ERROR)) {
