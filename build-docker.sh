@@ -6,4 +6,12 @@ else
    version="${1}"
 fi
 
-docker build --no-cache  -t gennyproject/checkrules:${version} .
+if [ -z "${2}" ]; then
+	arch=""
+else
+	arch=".${2}"
+fi
+
+echo "arch=[$arch]"
+
+docker build --no-cache -f Dockerfile${arch} -t gennyproject/checkrules:${version} .
