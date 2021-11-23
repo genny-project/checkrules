@@ -12,6 +12,7 @@
 #CMD []
 #FROM java:8-jdk-alpine
 FROM adoptopenjdk/openjdk11:alpine
+#FROM arm64v8/openjdk:11-jre
 COPY ./target/checkrules-fat.jar /usr/app/
 COPY ./imports.txt /usr/app/
 WORKDIR /usr/app

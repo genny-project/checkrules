@@ -151,7 +151,7 @@ import life.genny.models.ThemePosition;
 import life.genny.models.ThemePosition.WRAPPER;
 import life.genny.models.ThemePosition.CENTRE;
 import life.genny.models.FramePosition;
-import life.genny.utils.OutputParam;
+import life.genny.qwanda.utils.OutputParam;
 import life.genny.qwanda.rule.RuleDetails;
 import life.genny.qwanda.validation.ValidationList;
 import life.genny.qwanda.validation.Validation;
